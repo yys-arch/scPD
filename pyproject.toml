@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scpd"
+version = "0.1.0"
+description = "Single-Cell Pseudodynamics: Density dynamics fitting for 1D state-coordinate snapshots"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Yinyusong", email = "yinyusong@example.com"}
+]
+maintainers = [
+    {name = "Yinyusong", email = "yinyusong@example.com"}
+]
+keywords = ["single-cell", "pseudotime", "dynamics", "diffusion", "drift", "PDE", "bioinformatics"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "numpy>=1.21.0",
+    "scipy>=1.7.0",
+    "pandas>=1.3.0",
+    "matplotlib>=3.4.0",
+    "patsy>=0.5.0",
+    "scikit-learn>=1.0.0",
+]
+
+[project.optional-dependencies]
+scanpy = [
+    "scanpy>=1.9.0",
+    "anndata>=0.8.0",
+]
+gpu = [
+    "cupy-cuda11x>=10.0.0",  # For GPU acceleration
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=22.0.0",
+    "flake8>=4.0.0",
+    "mypy>=0.950",
+]
+docs = [
+    "sphinx>=4.0.0",
+    "sphinx-rtd-theme>=1.0.0",
+    "nbsphinx>=0.8.0",
+]
+all = [
+    "scpd[scanpy,dev,docs]",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/scpd"
+Documentation = "https://scpd.readthedocs.io"
+Repository = "https://github.com/yourusername/scpd"
+"Bug Tracker" = "https://github.com/yourusername/scpd/issues"
+Changelog = "https://github.com/yourusername/scpd/releases"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
