@@ -1,11 +1,11 @@
-# SCPD: Single-Cell Pseudodynamics
+# scPD: Single-Cell Pseudodynamics
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
 **Density dynamics fitting for 1D state-coordinate snapshots from single-cell data.**
 
-SCPD estimates **diffusion D(s)**, **drift v(s)**, and **net growth g(s)** along a normalized state coordinate s ∈ [0,1] from discrete-time snapshot distributions of single cells.
+scPD estimates **diffusion D(s)**, **drift v(s)**, and **net growth g(s)** along a normalized state coordinate s ∈ [0,1] from discrete-time snapshot distributions of single cells.
 
 ## Background
 
@@ -15,7 +15,7 @@ In snapshot single-cell data, the distribution of cells along a 1D state axis (e
 2. **Diffusion**: Stochastic spreading
 3. **Net Growth**: State-dependent proliferation/death
 
-SCPD fits a continuous density dynamics model to separate and quantify these contributions:
+scPD fits a continuous density dynamics model to separate and quantify these contributions:
 
 $$\partial_t u = \partial_s(D \partial_s u) - \partial_s(v \cdot u) + g \cdot u$$
 
