@@ -1,4 +1,4 @@
-# scPD: Single-Cell Pseudodynamics
+# scPD: a Python package for inferring continuous population dynamics from single-cell snapshot data
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -336,15 +336,6 @@ plt.legend()
 plt.show()
 ```
 
-### Parameter Tuning Guidelines
-
-| Parameter | Default | Recommendation |
-|-----------|---------|----------------|
-| `n_grid` | 200 | 100-300 (higher for smoother curves) |
-| `spline_df` | 6 | 4-10 (higher for more flexibility) |
-| `rho` | 0.1 | 0.01-1.0 (use CV for optimal value) |
-| `n_starts` | 10 | 5-20 (more for difficult optimization) |
-
 ## Method Details
 
 ### Discretization
@@ -373,7 +364,21 @@ For large datasets (>2500 cells by default):
 See `examples/` for complete demos:
 
 - `synthetic_time_series_demo.py`: Synthetic data with known ground truth
-- `paul15_demo.py`: Real data example using scanpy's paul15 dataset
+- `paul15_demo.py`: Real data example using scanpy's paul15 dataset  
+- `ipsc_serum_demo.py`: iPSC differentiation in serum conditions - demonstrates real-world application with time point alignment and population dynamics
+
+### Running Examples
+
+```bash
+# Synthetic data demo
+python examples/synthetic_time_series_demo.py
+
+# Paul15 hematopoiesis data
+python examples/paul15_demo.py
+
+# iPSC serum differentiation (requires your own data)
+python examples/ipsc_serum_demo.py --data-path /path/to/data.h5ad --output-dir outputs/
+```
 
 ## Dependencies
 
