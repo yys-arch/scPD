@@ -2,10 +2,20 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![PyPI version](https://badge.fury.io/py/scpd.svg)](https://badge.fury.io/py/scpd)
 
 **Density dynamics fitting for 1D state-coordinate snapshots from single-cell data.**
 
 scPD estimates **diffusion D(s)**, **drift v(s)**, and **net growth g(s)** along a normalized state coordinate s ∈ [0,1] from discrete-time snapshot distributions of single cells.
+
+## Key Features
+
+- **Quantitative dynamics inference**: Separate diffusion, drift, and growth contributions
+- **GPU acceleration**: Optional CUDA support for large datasets (>10K cells)
+- **Landmark clustering**: Automatic acceleration for datasets >2.5K cells
+- **Uncertainty quantification**: Bootstrap confidence intervals
+- **Scanpy integration**: Seamless workflow with AnnData objects
+- **Rich visualization**: Multiple plot types for comprehensive analysis
 
 ## Background
 
@@ -24,18 +34,31 @@ with no-flux boundary conditions.
 ## Installation
 
 ```bash
-# From PyPI
+# Basic installation
 pip install scpd
+
+# With scanpy integration
+pip install "scpd[scanpy]"
+
+# With GPU acceleration (requires CUDA)
+pip install "scpd[gpu]"
+
+# Full installation with all features
+pip install "scpd[all]"
 
 # From source
 git clone https://github.com/yys-arch/scpd.git
 cd scpd
 pip install -e .
-
-# With optional dependencies
-pip install -e ".[scanpy]"  # For scanpy/AnnData integration
-pip install -e ".[all]"     # All optional dependencies
 ```
+
+### Optional Dependencies
+
+- **scanpy**: `pip install "scpd[scanpy]"` - AnnData integration and scanpy workflows
+- **gpu**: `pip install "scpd[gpu]"` - CUDA acceleration with CuPy (requires NVIDIA GPU)
+- **dev**: Development tools (pytest, black, mypy)
+- **docs**: Documentation building tools
+- **all**: All optional dependencies
 
 ## Quick Start
 
@@ -110,47 +133,49 @@ prepared = scpd.prepare_inputs(s, adata.obs['day'].values)
 
 ## API Reference
 
-### `scpd.prepare_inputs(s, time_labels, ...)`
+### Core Functions
+
+#### `scpd.prepare_inputs(s, time_labels, ...)`
 
 Prepare input data for fitting.
 
-- `s`: State coordinate array
-- `time_labels`: Time/stage labels
+**Parameters:**
+- `s`: State coordinate array (will be normalized to [0,1])
+- `time_labels`: Time/stage labels for each cell
 - `N_obs`: Optional population sizes (enables `mode="with_population"`)
 - `landmarks`: "auto" | "on" | "off" - landmark acceleration mode
+- `landmark_threshold`: Cell count threshold for automatic landmarking (default: 2500)
 
-### `scpd.find_robust_root(adata, ...)`
+**Returns:** `PreparedData` object
+
+#### `scpd.find_robust_root(adata, ...)`
 
 Find robust root cell for pseudotime calculation.
 
+**Parameters:**
 - `adata`: AnnData object
 - `day_column`: Column name for time points (default: 'day')
 - `day_value`: Time value for root selection (default: 0.0)
 - `pca_key`: PCA coordinates key in obsm (default: 'X_pca')
 
-Returns the index of the cell closest to the geometric centroid of specified time point cells.
+**Returns:** Index of the cell closest to the geometric centroid of specified time point cells.
 
-### `scpd.plotting.plot_vector_field(adata, result, ...)`
+#### `scpd.compute_normalized_pseudotime(adata, ...)`
 
-Plot vector field showing cell dynamics in reduced dimension space.
+Compute normalized pseudotime using diffusion pseudotime.
 
-- `adata`: AnnData object with coordinates and pseudotime
-- `result`: PseudodynamicsResult object
-- `basis`: Coordinate system (default: 'X_umap')
-- `color_by`: Background coloring variable:
-  - `'s'`: Pseudotime
-  - `'cell_type'`: Cell type labels
-  - `'cell_W'`: Developmental potential
-  - `'cell_g'`: Growth rate
-  - Or any column in `adata.obs`
-- `grid_res`: Grid resolution (default: 50)
-- `smooth_sigma`: Gaussian smoothing parameter (default: 2.0)
+**Parameters:**
+- `adata`: AnnData object
+- `n_dcs`: Number of diffusion components (default: 10)
+- `percentile`: Percentile for robust normalization (default: 99)
 
-Visualizes inferred dynamics as streamlines, with arrow direction showing drift velocity v(s) along the developmental potential gradient.
+**Returns:** Normalized pseudotime array s ∈ [0,1]
 
-### `scpd.PseudodynamicsModel`
+### Model Classes
 
-Main model class.
+#### `scpd.PseudodynamicsModel`
+
+Main model class for fitting dynamics.
 
 ```python
 model = scpd.PseudodynamicsModel(
@@ -167,37 +192,158 @@ result = model.fit(
 )
 ```
 
-### `scpd.PseudodynamicsResult`
+#### `scpd.PseudodynamicsResult`
 
-Result container with:
+Result container with fitted dynamics and utilities.
 
+**Key Attributes:**
 - `D`, `v`, `g`: Rate functions on grid
 - `W`: Developmental potential W(s) = ∫₀ˢ -v(s') ds'
 - `u`: Density at each (grid, time)
-- `rates(s)`: Evaluate rates at arbitrary s
-- `developmental_potential(s)`: Evaluate W at arbitrary s
-- `to_cell_level(s_vector)`: Get all values for cell-level s
-- `save(path)` / `load(path)`: Persistence
+- `s_grid`: Grid points
+- `time_values`: Time points used
+
+**Key Methods:**
+- `rates(s)`: Evaluate D, v, g at arbitrary s values
+- `developmental_potential(s)`: Evaluate W at arbitrary s values
+- `to_cell_level(s_vector)`: Get all rate values for cell-level s coordinates
+- `save(path)` / `load(path)`: Save/load results
 
 ### Visualization
 
-```python
-from scpd.plotting import plot_vector_field
+#### `scpd.plotting.plot_vector_field(adata, result, ...)`
 
-# Plot vector field with different backgrounds
-plot_vector_field(adata, result, color_by='s')           # Pseudotime
-plot_vector_field(adata, result, color_by='cell_type')   # Cell type
-plot_vector_field(adata, result, color_by='cell_W')      # Potential
+Plot vector field showing cell dynamics in reduced dimension space.
+
+**Parameters:**
+- `adata`: AnnData object with coordinates and pseudotime
+- `result`: PseudodynamicsResult object
+- `basis`: Coordinate system (default: 'X_umap')
+- `color_by`: Background coloring variable:
+  - `'s'`: Pseudotime
+  - `'cell_type'`: Cell type labels
+  - `'cell_W'`: Developmental potential
+  - `'cell_g'`: Growth rate
+  - Or any column in `adata.obs`
+- `grid_res`: Grid resolution (default: 50)
+- `smooth_sigma`: Gaussian smoothing parameter (default: 2.0)
+
+#### Additional Plotting Functions
+
+```python
+from scpd.plotting import (
+    plot_density_heatmap,      # Density evolution heatmap
+    plot_rates,                # D(s), v(s), g(s) curves
+    plot_ecdf_comparison,      # Model vs data ECDF comparison
+    plot_developmental_potential, # W(s) potential landscape
+    plot_diagnostics           # Fitting diagnostics
+)
+
+# Example usage
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+plot_density_heatmap(result, ax=axes[0,0])
+plot_rates(result, ax=axes[0,1])
+plot_ecdf_comparison(result, prepared, ax=axes[1,0])
+plot_developmental_potential(result, ax=axes[1,1])
 ```
 
-Visualizes inferred dynamics as streamlines showing drift velocity v(s) along developmental trajectories.
+## Performance Optimization
 
-## Examples
+### GPU Acceleration
 
-See `examples/` for complete demos:
+For large datasets (>10K cells), enable GPU acceleration:
 
-- `synthetic_time_series_demo.py`: Synthetic data with known ground truth
-- `paul15_demo.py`: Real data example using scanpy's paul15 dataset
+```python
+# Install GPU dependencies
+pip install "scpd[gpu]"
+
+# GPU acceleration is automatically used when CuPy is available
+# and dataset size exceeds the threshold
+```
+
+**Requirements:**
+- NVIDIA GPU with CUDA support
+- CuPy installation matching your CUDA version
+- Sufficient GPU memory (recommended: >4GB for datasets >50K cells)
+
+### Landmark Clustering
+
+For datasets >2.5K cells, scPD automatically uses landmark clustering to accelerate computation:
+
+```python
+# Control landmark behavior
+prepared = scpd.prepare_inputs(
+    s, time_labels,
+    landmarks="auto",           # "auto", "on", or "off"
+    landmark_threshold=2500     # Threshold for automatic activation
+)
+```
+
+**Benefits:**
+- Reduces computational complexity from O(n²) to O(k²) where k << n
+- Maintains statistical accuracy through weighted bootstrap
+- Automatic selection of optimal cluster number
+
+### Memory Management
+
+For very large datasets:
+
+```python
+# Reduce grid resolution for memory efficiency
+model = scpd.PseudodynamicsModel(n_grid=100)  # Default: 200
+
+# Use fewer bootstrap samples for uncertainty estimation
+result = model.fit(prepared, n_bootstrap=50)  # Default: 100
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Convergence Problems:**
+```python
+# Try multiple random starts
+result = model.fit(prepared, n_starts=20)
+
+# Adjust regularization
+result = model.fit(prepared, rho=0.01)  # Lower for more flexibility
+
+# Use cross-validation for optimal rho
+result = model.fit(prepared, cv_rho=True)
+```
+
+**Memory Errors:**
+```python
+# Enable landmark clustering manually
+prepared = scpd.prepare_inputs(s, time_labels, landmarks="on")
+
+# Reduce grid resolution
+model = scpd.PseudodynamicsModel(n_grid=100)
+```
+
+**Poor Fit Quality:**
+```python
+# Check data preprocessing
+print(f"Pseudotime range: [{s.min():.3f}, {s.max():.3f}]")
+print(f"Time points: {np.unique(time_labels)}")
+
+# Visualize input data
+plt.figure(figsize=(10, 4))
+for t in np.unique(time_labels):
+    mask = time_labels == t
+    plt.hist(s[mask], alpha=0.6, label=f't={t}', bins=50)
+plt.legend()
+plt.show()
+```
+
+### Parameter Tuning Guidelines
+
+| Parameter | Default | Recommendation |
+|-----------|---------|----------------|
+| `n_grid` | 200 | 100-300 (higher for smoother curves) |
+| `spline_df` | 6 | 4-10 (higher for more flexibility) |
+| `rho` | 0.1 | 0.01-1.0 (use CV for optimal value) |
+| `n_starts` | 10 | 5-20 (more for difficult optimization) |
 
 ## Method Details
 
@@ -222,11 +368,18 @@ For large datasets (>2500 cells by default):
 - Weighted ECDF using cluster representatives
 - Multinomial bootstrap for uncertainty
 
+## Examples
+
+See `examples/` for complete demos:
+
+- `synthetic_time_series_demo.py`: Synthetic data with known ground truth
+- `paul15_demo.py`: Real data example using scanpy's paul15 dataset
+
 ## Dependencies
 
 **Core**: numpy, scipy, pandas, matplotlib, patsy, scikit-learn
 
-**Optional**: scanpy, anndata (for AnnData integration)
+**Optional**: scanpy, anndata (for AnnData integration), cupy (for GPU acceleration)
 
 ## Citation
 If you use scPD in your research, please cite our paper:
