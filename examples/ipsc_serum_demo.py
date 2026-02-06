@@ -34,7 +34,7 @@ import re
 from sklearn.metrics import pairwise_distances
 
 import scpd
-from scpd.plotting import plot_rates, plot_ecdf_comparison
+from scpd.plotting import plot_rates, plot_ecdf_comparison, plot_vector_field
 
 
 def parse_day(x):
@@ -241,15 +241,20 @@ def main():
         landmarks="auto"
     )
     
-    model = scpd.PseudodynamicsModel(n_grid=200, spline_df=6)
+    model = scpd.PseudodynamicsModel(
+        n_grid=200, 
+        spline_df=6,
+        stabilize_boundary=True
+    )
     
     start_time = time.time()
     result = model.fit(
         prepared,
         mode="with_population",
-        rho=0.1,
+        rho=1.0,        # Match original regularization strength
         n_starts=5,
-        random_state=42,
+        n_bootstrap=5,  # Match original bootstrap count
+        random_state=0, # Match original random state
         verbose=True
     )
     elapsed = time.time() - start_time
@@ -333,6 +338,49 @@ def main():
     plt.tight_layout()
     plt.savefig(output_dir / "detailed_analysis.pdf", dpi=150, bbox_inches='tight')
     plt.close(fig)
+    
+    # Vector field visualization
+    print("Generating vector field plots...")
+    
+    # Store pseudotime in adata for vector field plotting
+    adata.obs['s'] = s  # Required by plot_vector_field
+    adata.obs['pseudotime'] = s
+    
+    # Vector field colored by pseudotime
+    fig, ax = plt.subplots(figsize=(10, 8))
+    plot_vector_field(adata, result, basis='X_umap', color_by='pseudotime', 
+                     ax=ax, title='Inferred Dynamics: Vector Field (colored by pseudotime)')
+    plt.savefig(output_dir / "vector_field_pseudotime.pdf", dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print("   - Saved vector_field_pseudotime.pdf")
+    
+    # Vector field colored by time point
+    fig, ax = plt.subplots(figsize=(10, 8))
+    plot_vector_field(adata, result, basis='X_umap', color_by='day',
+                     ax=ax, title='Inferred Dynamics: Vector Field (colored by day)')
+    plt.savefig(output_dir / "vector_field_day.pdf", dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print("   - Saved vector_field_day.pdf")
+    
+    # Vector field colored by cell type (if available)
+    if 'cell_type' in adata.obs:
+        fig, ax = plt.subplots(figsize=(10, 8))
+        plot_vector_field(adata, result, basis='X_umap', color_by='cell_type',
+                         ax=ax, title='Inferred Dynamics: Vector Field (colored by cell type)')
+        plt.savefig(output_dir / "vector_field_celltype.pdf", dpi=150, bbox_inches='tight')
+        plt.close(fig)
+        print("   - Saved vector_field_celltype.pdf")
+    
+    # Vector field colored by developmental potential
+    cell_values = result.to_cell_level(s)
+    adata.obs['cell_W'] = cell_values['W']
+    
+    fig, ax = plt.subplots(figsize=(10, 8))
+    plot_vector_field(adata, result, basis='X_umap', color_by='cell_W',
+                     ax=ax, title='Inferred Dynamics: Vector Field (colored by potential)')
+    plt.savefig(output_dir / "vector_field_potential.pdf", dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print("   - Saved vector_field_potential.pdf")
     
     print("Analysis complete!")
     print(f"Results saved to: {output_dir.resolve()}")
