@@ -102,8 +102,8 @@ def main():
         mode=args.mode,
         # cv_rho=True,
         rho=0.01,
-        n_starts=20,
-        n_bootstrap=100,
+        n_starts=10,
+        n_bootstrap=5,
         random_state=0,
         verbose=True
     )

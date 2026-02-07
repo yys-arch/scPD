@@ -80,13 +80,13 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Project specific
-outputs/
-data/
-*.npz
-*.h5
-*.h5ad
-*.pdf
-*.png
-!docs/**/*.png
-!examples/**/*.png
+# # Project specific
+# outputs/
+# data/
+# *.npz
+# *.h5
+# *.h5ad
+# *.pdf
+# *.png
+# !docs/**/*.png
+# !examples/**/*.png
