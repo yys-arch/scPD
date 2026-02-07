@@ -1,5 +1,5 @@
 """
-Likelihood computation and empirical cumulative distribution function (ECDF) / A-distance calculation.
+Likelihood computation and empirical cumulative distribution function (ECDF) / Area distance calculation.
 
 Implements observation model comparing model CDF to empirical CDF,
 supporting both cell-level and landmark-weighted computation.
