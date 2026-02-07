@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI version](https://badge.fury.io/py/scpd.svg)](https://badge.fury.io/py/scpd)
+[![PyPI version](https://badge.fury.io/py/scpd.svg?v=0.1.0)](https://badge.fury.io/py/scpd)
 
 **Density dynamics fitting for 1D state-coordinate snapshots from single-cell data.**
 
