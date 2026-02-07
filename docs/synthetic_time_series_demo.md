@@ -48,12 +48,26 @@ python examples/synthetic_time_series_demo.py
 # With more cells (enables landmarking)
 python examples/synthetic_time_series_demo.py --n-cells 1000
 
+# More time points
+python examples/synthetic_time_series_demo.py --n-times 8
+
 # Force landmark mode
 python examples/synthetic_time_series_demo.py --landmarks on
 
 # Distribution-only mode (no g fitting)
 python examples/synthetic_time_series_demo.py --mode distribution_only
+
+# Custom output directory
+python examples/synthetic_time_series_demo.py --output-dir results/synthetic
 ```
+
+### Command-line Arguments
+
+- `--landmarks`: Landmark mode - "auto" (default), "on", or "off"
+- `--mode`: Fitting mode - "distribution_only" or "with_population" (default)
+- `--n-cells`: Cells per time point (default: 500)
+- `--n-times`: Number of time points (default: 6)
+- `--output-dir`: Output directory (default: outputs/synthetic_time_series)
 
 ## Outputs
 

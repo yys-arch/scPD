@@ -17,7 +17,7 @@ The paul15 dataset is a classic single-cell RNA-seq benchmark:
 **This demo does NOT use physical time.** Instead:
 
 1. Diffusion pseudotime (DPT) is computed from the data
-2. Cells are binned into K quantile-based "stages"
+2. Cells are binned into K equal-spaced "stages" along pseudotime
 3. These stages serve as the discrete time points for SCPD
 
 This is a common use case in single-cell biology where true time-series data is unavailable, but pseudotime provides a proxy ordering.
@@ -33,10 +33,14 @@ The root cell index (`adata.uns["iroot"]`) specifies which cell is considered th
 
 **g(s) requires real population measurements.**
 
-In this demo, we construct `N_obs` from bin sizes as a demonstration, but this does NOT reflect true biological growth/death. In practice:
+This demo uses `mode="distribution_only"` which fixes g(s) = 0. Without actual cell counts at each time point (e.g., from FACS), g(s) cannot be identified from normalized distributions alone.
 
-- **distribution_only mode** is the honest approach when you lack population data
-- **with_population mode** requires actual cell counts at each time (e.g., from FACS)
+### Pseudotime Distribution
+
+Paul15 pseudotime is highly skewed - most cells are in early stages. This demo:
+- Focuses on the main differentiation region (default: s < 0.4)
+- Uses equal-spaced bins rather than quantile bins
+- Renormalizes the selected range to [0, 1]
 
 ## Method
 
@@ -44,36 +48,46 @@ In this demo, we construct `N_obs` from bin sizes as a demonstration, but this d
 
 1. Load paul15 dataset via `sc.datasets.paul15()`
 2. Filter, normalize, log-transform
-3. Select highly variable genes
+3. Select highly variable genes (1000 genes)
 4. Compute PCA (50 components)
 5. Build neighbor graph
 6. Compute diffusion map and DPT
 
 ### Stage Construction
 
-Cells are binned by pseudotime quantiles into K stages (default 6):
+Cells are binned by equal-spaced pseudotime intervals:
 - Bin 0: earliest cells (s near 0)
 - Bin K-1: most differentiated (s near 1)
+- Default: 4 bins in the range s < 0.4
 
 ### Fitting
 
-Both modes are run:
-
-1. **distribution_only**: g(s) = 0, fits D and v only
-2. **with_population**: uses bin sizes as N_obs (demo only)
+Runs `mode="distribution_only"`:
+- Fits D(s) and v(s) only
+- Fixes g(s) = 0 (no population data)
+- Uses higher regularization (rho=1) for smoother curves
 
 ## Usage
 
 ```bash
-# Basic run
+# Basic run (s < 0.4, 4 bins)
 python examples/paul15_demo.py
 
-# More bins
-python examples/paul15_demo.py --n-bins 8
+# Include more of the pseudotime range
+python examples/paul15_demo.py --s-max 0.6
 
-# Custom output
+# More bins for finer resolution
+python examples/paul15_demo.py --n-bins 6
+
+# Custom output directory
 python examples/paul15_demo.py --output-dir results/paul15_analysis
 ```
+
+### Command-line Arguments
+
+- `--s-max`: Maximum pseudotime to include (default: 0.4)
+- `--n-bins`: Number of equal-spaced bins (default: 4)
+- `--output-dir`: Output directory (default: outputs/paul15)
 
 ## Requirements
 
@@ -85,14 +99,16 @@ pip install scanpy anndata
 
 Saved to `outputs/paul15/`:
 
-- `rates_distribution_only.png`: D, v, g curves (g=0)
-- `rates_with_population.png`: D, v, g curves with population fitting
-- `mode_comparison.png`: Both modes overlaid
-- `ecdf_comparison.png`: ECDF vs model CDF per stage
-- `developmental_potential.png`: W(s) curve
-- `embedding.png`: Cells in low-D embedding, colored by s and stage
-- `landmark_comparison.png`: Timing comparison
-- `result_*.npz`: Saved results
+- `rates.pdf`: D(s), v(s), g(s) curves
+- `ecdf_comparison.pdf`: ECDF vs model CDF per stage
+- `analysis.pdf`: Detailed analysis with 4 panels:
+  - Diffusion coefficient D(s)
+  - Drift velocity v(s) with forward/backward regions
+  - Developmental potential W(s)
+  - A-distance diagnostics per time bin
+- `embedding.pdf`: UMAP visualization colored by pseudotime and time bins
+- `processed_paul15_data.h5ad`: Processed AnnData object (subset to s < s_max)
+- `result.npz`: Saved result for later loading
 
 ## Interpretation
 
@@ -103,40 +119,55 @@ Saved to `outputs/paul15/`:
 
 ### Drift v(s)
 - Positive v: cells tend to increase s (progress along pseudotime)
+- Negative v: cells tend to decrease s (rare in normal differentiation)
 - Magnitude indicates speed of differentiation
 - Shape reveals where differentiation is fastest
-
-### Net Growth g(s)
-- Only meaningful with real population data
-- Would indicate state-dependent proliferation/death
-- In this demo, the values are NOT biologically interpretable
 
 ### Developmental Potential W(s)
 - W(s) = ∫₀ˢ -v(s') ds'
 - Lower W = more differentiated state
-- Decreasing W along s is expected for differentiating cells
+- Higher W = more primitive/undifferentiated state
+- Cells flow from high W to low W (downhill in potential landscape)
+
+### A-distance
+- Measures model fit quality (discrepancy between model and data CDFs)
+- Lower is better
+- Error bars show bootstrap uncertainty
 
 ## Technical Details
 
-### Landmark Acceleration
+### Equal-Spaced vs Quantile Bins
 
-For this dataset (~2,700 cells):
-- Close to the 2,500 cell threshold for auto-landmarking
-- Demo forces both on/off for comparison
-- Landmarks are computed in PCA space (50D)
-- MiniBatchKMeans with fixed random state
+This demo uses equal-spaced bins because:
+- Paul15 pseudotime is highly skewed (most cells at low s)
+- Quantile bins would create uneven spacing in pseudotime
+- Equal spacing better captures the continuous dynamics
 
-### PCA Features for Clustering
+### Focus on s < 0.4
 
-When landmark clustering is performed:
-- Uses `adata.obsm['X_pca']` (first 50 PCs)
-- Captures biological variation for sensible grouping
-- Falls back to 1D s-clustering if PCA unavailable
+The default focuses on early differentiation because:
+- 75% of cells have s < 0.3
+- Later stages have sparse data
+- Main differentiation dynamics occur in early region
+
+### Regularization
+
+Uses rho=1 (higher than synthetic demo) because:
+- Real data is noisier than synthetic
+- Prevents overfitting to sparse bins
+- Produces smoother, more interpretable curves
 
 ## Caveats
 
 1. **Pseudotime ≠ Real Time**: The dynamics estimated are along a computational ordering, not physical time
-2. **g(s) Validity**: Without population data, g(s) should be fixed to 0
+2. **g(s) = 0**: Without population data, growth/death cannot be inferred
 3. **Lineage Mixing**: paul15 has multiple lineages; a 1D model is a simplification
 4. **Root Sensitivity**: DPT results depend on root cell choice
+5. **Sparse Late Stages**: Few cells at high s may lead to unreliable estimates there
 
+## Expected Results
+
+- D(s) should be relatively stable or slightly decreasing
+- v(s) should be mostly positive (forward differentiation)
+- W(s) should decrease monotonically (loss of potential)
+- A-distances should be small and consistent across bins
