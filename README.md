@@ -379,6 +379,11 @@ See `examples/` for complete demos:
 - `synthetic_time_series_demo.py`: Synthetic data with known ground truth
 - `paul15_demo.py`: Real data example using scanpy's paul15 dataset  
 - `ipsc_serum_demo.py`: iPSC differentiation in serum conditions - demonstrates real-world application with time point alignment and population dynamics
+- `synthetic_benchmark_review.py`: Synthetic benchmark scenarios used for manuscript revision
+- `hyperparameter_sensitivity_review.py`: Spline and regularization sensitivity analysis used for manuscript revision
+
+Additional notes for the reviewer-response analyses are provided in
+`docs/reviewer_benchmark_and_sensitivity.md`.
 
 ### Running Examples
 
@@ -391,6 +396,12 @@ python examples/paul15_demo.py
 
 # iPSC serum differentiation (requires your own data)
 python examples/ipsc_serum_demo.py --data-path /path/to/data.h5ad --output-dir outputs/
+
+# Synthetic benchmark used for manuscript revision
+python examples/synthetic_benchmark_review.py
+
+# Hyperparameter sensitivity analysis
+python examples/hyperparameter_sensitivity_review.py --data-path /path/to/iPSC_serum.h5ad
 ```
 
 ## Testing
@@ -437,4 +448,3 @@ If you have any questions, please feel free to contact:
 ## License
 
 MIT License
-
