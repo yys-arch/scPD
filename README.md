@@ -439,7 +439,7 @@ All 53 tests pass successfully, ensuring the package works correctly across diff
 
 ## Citation
 If you use scPD in your research, please cite our paper:
-> Paper under review
+> https://doi.org/10.1093/bioadv/vbag188
 
 ## Contact
 If you have any questions, please feel free to contact:
